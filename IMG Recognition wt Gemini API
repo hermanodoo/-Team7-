@@ -1,0 +1,50 @@
+import google.generativeai as genai
+from google.colab import files
+from io import BytesIO
+from PIL import Image
+import re
+
+# Configure the Gemini API
+genai.configure(api_key="YOUR_API_KEY")  # Replace with your actual API key
+model = genai.GenerativeModel('gemini-1.5-flash')
+
+def detect_object_gemini(image_bytes):
+    """
+    Detects the main object in an image using Gemini Pro Vision.
+
+    Args:
+        image_bytes: Bytes of the image.
+
+    Returns:
+        The detected object's name (string), or an error message.
+    """
+    try:
+        img_pil = Image.open(BytesIO(image_bytes))
+        response = model.generate_content(["What is the main object in this image? Give me the single object name only, do not give a full sentence." , img_pil])
+        gemini_analysis = response.text
+
+        # Extract the object name (handle variations in response)
+        object_name = gemini_analysis.strip().lower() #basic clean up.
+        object_name = re.sub(r'[^\w\s]', '', object_name) #remove punctuation.
+        return object_name
+
+    except Exception as e:
+        return f"Error processing image: {e}"
+
+def upload_and_detect_gemini():
+    """
+    Handles file upload and object detection in Google Colab using Gemini.
+    """
+    uploaded = files.upload()
+
+    for filename, img_bytes in uploaded.items():
+        print(f"Processing {filename}...")
+        results = detect_object_gemini(img_bytes)
+
+        if isinstance(results, str):
+            print("Detected Object:", results)
+        else:
+            print(results)  # Print the error message
+
+# Example usage in Colab:
+upload_and_detect_gemini()
