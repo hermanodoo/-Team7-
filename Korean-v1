@@ -1,0 +1,44 @@
+import google.generativeai as genai
+from google.colab import files
+from io import BytesIO
+from PIL import Image
+
+# Configure the Gemini API
+genai.configure(api_key="YOUR_API_KEY")  # Replace with your actual API key
+model = genai.GenerativeModel('gemini-1.5-flash')
+
+def detect_object_gemini(image_bytes):
+    """
+    Detects objects in an image using Gemini Pro Vision with improved error handling.
+
+    Args:
+        image_bytes: Bytes of the image.
+
+    Returns:
+        A list of detected object names or an error message.
+    """
+    try:
+        img_pil = Image.open(BytesIO(image_bytes))
+        # Regex & 인식불가오류를 질문안에 모두 해결
+        response = model.generate_content([
+            "이미지에서 식별할 수 있는 모든 식재료 및 음식 객체들을 '['객체1', '객체2', ...]'로 답변해. 이외의 객체일 경우 무시해. 못 찾겠으면 '식재료 또는 음식 인식 불가'로 답변해",
+            img_pil
+        ])
+
+        return response.text.strip()
+
+    except Image.UnidentifiedImageError:
+        return "Error: Unable to identify image file. Please ensure it's a valid image format (e.g., JPEG, PNG)."
+    except Exception as e:
+        return f"Error processing image: {e}"
+
+def upload_and_detect_gemini():
+    uploaded = files.upload()
+
+    for filename, img_bytes in uploaded.items():
+        print(f"Processing {filename}...")
+        result = detect_object_gemini(img_bytes)
+        print(result)
+
+# Example usage in Colab:
+upload_and_detect_gemini()
